@@ -1,8 +1,11 @@
 import typing
 
 import pandas as pd
-from river import base, preprocessing, tree
-from river.base import Classifier, Estimator, Regressor, Transformer
+from capymoa import base, estimator
+from capymoa.stream import preprocessing, tree
+from capymoa import classifier, regressor
+from capymoa.preprocessing import transformer
+
 
 from EvOAutoML.base.utils import PipelineHelper
 

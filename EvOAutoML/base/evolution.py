@@ -1,9 +1,9 @@
 import copy
-
+import capymoa
 import numpy as np
-from river import base
+from capymoa import base
 from sklearn.model_selection import ParameterSampler
-
+from capymoa.evaluation import evaluation
 
 class EvolutionaryBaggingEstimator(base.Wrapper, base.Ensemble):
     def __init__(
@@ -11,6 +11,7 @@ class EvolutionaryBaggingEstimator(base.Wrapper, base.Ensemble):
         model,
         param_grid,
         metric,
+        evaluator, #ClassificationEvaluator/Regressor/etc
         population_size=10,
         sampling_size=1,
         sampling_rate=1000,
@@ -37,8 +38,10 @@ class EvolutionaryBaggingEstimator(base.Wrapper, base.Ensemble):
         self.model = model
         self.seed = seed
         self._i = 0
+        self.metric_index = self.metrics_header().index(metric)
+        #self.metric_value = float(evaluation.evaluator.metrics()[self.metric_index])
         self._population_metrics = [
-            copy.deepcopy(metric()) for _ in range(self.n_models)
+            copy.deepcopy(evaluation.evaluator()) for _ in range(self.n_models)
         ]
 
     @property
@@ -50,21 +53,23 @@ class EvolutionaryBaggingEstimator(base.Wrapper, base.Ensemble):
         model._set_params(params)
         return model
 
-    def learn_one(self, x: dict, y: base.typing.ClfTarget, **kwargs):
+    def learn_one(self, x: dict, y: capymoa.type_alias.Label, **kwargs):
         # Create Dataset if not initialized
         # Check if population needs to be updated
         if self._i % self.sampling_rate == 0:
+            scores=[float(be.metrics()[self.metric_index]) for be in self._population_metrics]
             scores = [be.get() for be in self._population_metrics]
             idx_best = scores.index(max(scores))
             idx_worst = scores.index(min(scores))
             child = self._mutate_estimator(estimator=self[idx_best])
             self.models[idx_worst] = child
-            self._population_metrics[idx_worst] = copy.deepcopy(self.metric())
+            self._population_metrics[idx_worst] = copy.deepcopy(evaluation.evaluator())
 
         for idx, model in enumerate(self):
             self._population_metrics[idx].update(
                 y_true=y, y_pred=model.predict_one(x)
             )
+            self._population_metrics[idx].metrics()[self.metric_index]
             for _ in range(self._rng.poisson(6)):
                 model.learn_one(x, y)
         self._i += 1
@@ -113,7 +118,7 @@ class EvolutionaryBaggingEstimator(base.Wrapper, base.Ensemble):
 
 
 class EvolutionaryBaggingOldestEstimator(EvolutionaryBaggingEstimator):
-    def learn_one(self, x: dict, y: base.typing.ClfTarget, **kwargs):
+    def learn_one(self, x: dict, y: capymoa.type_alias.Label, **kwargs):
         # Create Dataset if not initialized
         # Check if population needs to be updated
         if self._i % self.sampling_rate == 0:

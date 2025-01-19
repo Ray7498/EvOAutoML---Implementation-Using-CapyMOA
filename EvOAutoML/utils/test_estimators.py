@@ -4,7 +4,7 @@ import importlib
 import inspect
 
 import pytest
-import river
+import capymoa
 
 from EvOAutoML import utils
 
@@ -14,7 +14,7 @@ def iter_estimators():
 
         def is_estimator(obj):
             return inspect.isclass(obj) and issubclass(
-                obj, river.base.Estimator
+                obj, capymoa.base.Estimator
             )
 
         for _, obj in inspect.getmembers(

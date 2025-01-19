@@ -3,9 +3,9 @@ import typing
 import pandas as pd
 from capymoa import base, estimator
 from capymoa.stream import preprocessing, tree
-from capymoa import classifier, regressor
+from capymoa.base import Classifier, Regressor
 from capymoa.preprocessing import transformer
-
+from moa.streams.filters import NormalisationFilter, StandardisationFilter
 
 from EvOAutoML.base.utils import PipelineHelper
 
@@ -27,36 +27,36 @@ class PipelineHelperClassifier(PipelineHelper, Classifier):
     @classmethod
     def _unit_test_params(cls):
         models = [
-            ("HT", tree.HoeffdingTreeClassifier()),
-            ("EFDT", tree.ExtremelyFastDecisionTreeClassifier()),
+            ("HT", classifier.HoeffdingTree()),
+            ("EFDT", classifier.EFDT()),
         ]
         yield {
             "models": models,
         }
 
-    def learn_one(
-        self, x: dict, y: base.typing.ClfTarget, **kwargs
+    def train(
+        self, x: dict, y: type_alias.Label, **kwargs
     ) -> Estimator:
-        self.selected_model = self.selected_model.learn_one(x=x, y=y, **kwargs)
+        self.selected_model = self.selected_model.train(x=x, y=y, **kwargs)
         return self
 
-    def predict_one(self, x: dict) -> base.typing.ClfTarget:
-        return self.selected_model.predict_one(x)
+    def predict(self, x: dict) -> type_alias.Label:
+        return self.selected_model.predict(x)
 
 
-    def predict_proba_one(
+    def predict_proba(
         self, x: dict
-    ) -> typing.Dict[base.typing.ClfTarget, float]:
-        return self.selected_model.predict_proba_one(x=x)
+    ) -> typing.Dict[type_alias.LabelProbabilities, float]:
+        return self.selected_model.predict_proba(x=x)
 
-    def predict_proba_many(self, X: pd.DataFrame) -> pd.DataFrame:
-        return self.selected_model.predict_proba_many(X=X)
+    #def predict_proba_many(self, X: pd.DataFrame) -> pd.DataFrame:
+        #return self.selected_model.predict_proba_many(X=X)
 
-    def predict_many(self, X: pd.DataFrame) -> pd.Series:
-        return self.selected_model.predict_many(X=X)
+    #def predict_many(self, X: pd.DataFrame) -> pd.Series:
+        #return self.selected_model.predict_many(X=X)
 
 
-class PipelineHelperTransformer(PipelineHelper, Transformer):
+class PipelineHelperTransformer(PipelineHelper, MOATransformer):
     """
     Add some Text here
     """
@@ -64,8 +64,8 @@ class PipelineHelperTransformer(PipelineHelper, Transformer):
     @classmethod
     def _unit_test_params(cls):
         models = [
-            ("ABS", preprocessing.MaxAbsScaler()),
-            ("NORM", preprocessing.Normalizer()),
+            ("MinMax", MOATransformer(fiter=NormalisationFilter())),
+            ("NORM", MOATransformer(StandardisationFilter())),
         ]
         yield {
             "models": models,
@@ -78,7 +78,7 @@ class PipelineHelperTransformer(PipelineHelper, Transformer):
         else:
             return False
 
-    def transform_one(self, x: dict) -> dict:
+    def transform(self, x: dict) -> dict:
         """
 
         Args:
@@ -87,10 +87,10 @@ class PipelineHelperTransformer(PipelineHelper, Transformer):
         Returns:
 
         """
-        return self.selected_model.transform_one(x=x)
+        return self.selected_model.transform(x=x)
 
-    def learn_one(
-        self, x: dict, y: base.typing.Target = None, **kwargs
+    def train(
+        self, x: dict, y: type_alias.TargetValue = None, **kwargs
     ) -> "Transformer":
         """
         Add second text here
@@ -102,10 +102,10 @@ class PipelineHelperTransformer(PipelineHelper, Transformer):
         Returns:
             self
         """
-        if self.selected_model._supervised:
-            self.selected_model = self.selected_model.learn_one(x, y)
-        else:
-            self.selected_model = self.selected_model.learn_one(x)
+        #if self.selected_model._supervised:
+        self.selected_model = self.selected_model.train(x, y)
+        #else:
+            #self.selected_model = self.selected_model.train(x)
         return self
 
 
@@ -113,18 +113,19 @@ class PipelineHelperRegressor(PipelineHelper, Regressor):
     @classmethod
     def _unit_test_params(cls):
         models = [
-            ("HT", tree.HoeffdingTreeRegressor()),
-            ("HAT", tree.HoeffdingAdaptiveTreeRegressor()),
+            ("SOKNLBT", SOKNLBT()),
+            ("KNNRegressor", KNNRegressor()),
         ]
         yield {
             "models": models,
         }
 
-    def learn_one(
-        self, x: dict, y: base.typing.ClfTarget, **kwargs
+    def train(
+        self, x: dict, y: type_alias.TargetValue, **kwargs
     ) -> Estimator:
-        self.selected_model = self.selected_model.learn_one(x=x, y=y, **kwargs)
+        self.selected_model = self.selected_model.train(x=x, y=y, **kwargs)
         return self
 
-    def predict_one(self, x: dict) -> base.typing.ClfTarget:
-        return self.selected_model.predict_one(x=x)
+    def predict(self, x: dict) -> type_alias.TargetValue:
+        return self.selected_model.predict(x=x)
+

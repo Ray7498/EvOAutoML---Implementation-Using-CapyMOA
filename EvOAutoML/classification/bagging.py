@@ -1,6 +1,19 @@
 import collections
 
-from river import base, metrics, tree
+#from river import base, metrics, tree
+from capymoa import base, evaluation
+from capymoa.classifier import (
+    HoeffdingTree,
+    NoChange,
+    MajorityClass,
+    OnlineBagging,
+    LeveragingBagging,
+    AdaptiveRandomForestClassifier,
+    StreamingRandomPatches,
+    OnlineSmoothBoost,
+    OzaBoost,
+    StreamingGradientBoostedTrees
+)
 
 from EvOAutoML.base.evolution import (
     EvolutionaryBaggingEstimator,
@@ -50,9 +63,9 @@ class EvolutionaryBaggingClassifier(
     >>> model = classification.EvolutionaryBaggingClassifier(seed=42)
     >>> metric = metrics.F1()
     >>> for x, y in dataset:
-    ...     y_pred = model.predict_one(x)  # make a prediction
+    ...     y_pred = model.predict(x)  # make a prediction
     ...     metric = metric.update(y, y_pred)  # update the metric
-    ...     model = model.learn_one(x,y)  # make the model learn
+    ...     model = model.train(x,y)  # make the model learn
     """
 
     def __init__(
@@ -61,7 +74,7 @@ class EvolutionaryBaggingClassifier(
         param_grid=CLASSIFICATION_PARAM_GRID,
         population_size=10,
         sampling_size=1,
-        metric=metrics.Accuracy,
+        metric="accuracy",
         sampling_rate=1000,
         seed=42,
     ):
@@ -75,13 +88,14 @@ class EvolutionaryBaggingClassifier(
             sampling_rate=sampling_rate,
             seed=seed,
         )
+        self.metric_index = self.metrics_header().index(metric)
 
     @classmethod
     def _unit_test_params(cls):
-        model = tree.HoeffdingTreeClassifier()
+        model = HoeffdingTree()
 
         param_grid = {
-            "max_depth": [10, 30, 60, 10, 30, 60],
+            'grace_period': [500, 300, 1000, 100, 150, 200],
         }
 
         yield {
@@ -102,12 +116,12 @@ class EvolutionaryBaggingClassifier(
         """
         return {"check_init_default_params_are_not_mutable"}
 
-    def predict_proba_one(self, x):
+    def predict_proba(self, x):
         """Averages the predictions of each classifier."""
 
         y_pred = collections.Counter()
         for classifier in self:
-            y_pred.update(classifier.predict_proba_one(x))
+            y_pred.update(classifier.predict_proba(x))
 
         total = sum(y_pred.values())
         if total > 0:
@@ -154,9 +168,9 @@ class EvolutionaryOldestBaggingClassifier(
     >>> model = classification.EvolutionaryOldestBaggingClassifier(seed=42)
     >>> metric = metrics.F1()
     >>> for x, y in dataset:
-    ...     y_pred = model.predict_one(x)  # make a prediction
+    ...     y_pred = model.predict(x)  # make a prediction
     ...     metric = metric.update(y, y_pred)  # update the metric
-    ...     model = model.learn_one(x,y)  # make the model learn
+    ...     model = model.train(x,y)  # make the model learn
     """
 
     def __init__(
@@ -165,7 +179,7 @@ class EvolutionaryOldestBaggingClassifier(
         param_grid=CLASSIFICATION_PARAM_GRID,
         population_size=10,
         sampling_size=1,
-        metric=metrics.Accuracy,
+        metric="accuracy",
         sampling_rate=1000,
         seed=42,
     ):
@@ -179,13 +193,14 @@ class EvolutionaryOldestBaggingClassifier(
             sampling_rate=sampling_rate,
             seed=seed,
         )
+        self.metric_index = self.metrics_header().index(metric)
 
     @classmethod
     def _unit_test_params(cls):
-        model = tree.HoeffdingTreeClassifier()
+        model = HoeffdingTree()
 
         param_grid = {
-            "max_depth": [10, 30, 60, 10, 30, 60],
+            'grace_period': [500, 300, 1000, 100, 150, 200],
         }
 
         yield {
@@ -206,12 +221,12 @@ class EvolutionaryOldestBaggingClassifier(
         """
         return {"check_init_default_params_are_not_mutable"}
 
-    def predict_proba_one(self, x):
+    def predict_proba(self, x):
         """Averages the predictions of each classifier."""
 
         y_pred = collections.Counter()
         for classifier in self:
-            y_pred.update(classifier.predict_proba_one(x))
+            y_pred.update(classifier.predict_proba(x))
 
         total = sum(y_pred.values())
         if total > 0:

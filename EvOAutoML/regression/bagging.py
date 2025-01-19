@@ -1,6 +1,9 @@
 import statistics
 
-from river import base, metrics, tree
+#from river import base, metrics, tree
+from capymoa import type_alias
+from capymoa.regressor import (
+    SOKNLBT)
 
 from EvOAutoML.base.evolution import EvolutionaryBaggingEstimator
 from EvOAutoML.config import AUTOML_REGRESSION_PIPELINE, REGRESSION_PARAM_GRID
@@ -68,9 +71,9 @@ class EvolutionaryBaggingRegressor(
     ... )
     >>> metric = metrics.MSE()
     >>> for x, y in dataset:
-    ...     y_pred = model.predict_one(x)  # make a prediction
+    ...     y_pred = model.predict(x)  # make a prediction
     ...     metric = metric.update(y, y_pred)  # update the metric
-    ...     model = model.learn_one(x,y)  # make the model learn
+    ...     model = model.train(x,y)  # make the model learn
     >>> print(f'MSE: {metric.get():.2f}')
     MSE: 2.35
     """
@@ -81,7 +84,7 @@ class EvolutionaryBaggingRegressor(
         param_grid=REGRESSION_PARAM_GRID,
         population_size=10,
         sampling_size=1,
-        metric=metrics.MSE,
+        metric="rmse",
         sampling_rate=1000,
         seed=42,
     ):
@@ -98,10 +101,10 @@ class EvolutionaryBaggingRegressor(
 
     @classmethod
     def _unit_test_params(cls):
-        model = tree.HoeffdingTreeRegressor()
+        model = SOKNLBT()
 
         param_grid = {
-            "max_depth": [10, 30, 60, 10, 30, 60],
+            'grace_period': [500, 300, 1000, 100, 150, 200],
         }
 
         yield {
@@ -121,7 +124,7 @@ class EvolutionaryBaggingRegressor(
         """
         return {"check_init_default_params_are_not_mutable"}
 
-    def predict_one(self, x: dict) -> base.typing.RegTarget:
+    def predict(self, x: dict) -> type_alias.TargetValue:
         """Averages the predictions of each regressor."""
-        arr = [regressor.predict_one(x) for regressor in self]
+        arr = [regressor.predict(x) for regressor in self]
         return statistics.mean([0.0 if v is None else v for v in arr])

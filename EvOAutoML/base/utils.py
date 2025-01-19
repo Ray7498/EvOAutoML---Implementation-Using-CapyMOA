@@ -2,7 +2,7 @@ import random
 from collections import defaultdict
 
 import numpy as np
-from river.base import Estimator
+from capymoa.base import Estimator
 from sklearn.model_selection import ParameterGrid
 
 
@@ -59,6 +59,7 @@ class PipelineHelper(Estimator):
 
         # create instance for cartesion product of all available parameters
         # for each model
+        
         for model_name, param_dict in per_model_parameters.items():
             parameter_sets = ParameterGrid(param_dict)
             for parameters in parameter_sets:
